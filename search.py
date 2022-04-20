@@ -74,33 +74,42 @@ def tinyMazeSearch(problem):
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
 
-def graphSearch(problem, container, Stack_or_Queue):
+def graphSearch(problem, algorithm):
     """
-    Search algorithm of graph. BFS and DFS are similar, 
+    Search algorithm of graph. BFS, DFS and UCS are similar, 
     but BFS uses Queue to manage which state will be visited next
-    while DFS uses Stack.
+    while DFS uses Stack and UCS uses PriorityQueue.
     
     container parameter is used to specify the container the algorithm uses: Queue or Stack.
     """
-    from util import Stack, Queue
+    from util import Stack, Queue, PriorityQueue
 
     current_state = problem.getStartState()
 
     visited_state = []
     action_to_goal = []
     
-    if (Stack_or_Queue == 'stack'):
+    if (algorithm == 'dfs'):
+        container = Stack()
         action_to_current = Stack()
-    else:
+    elif (algorithm == 'bfs'):
+        container = Queue()
         action_to_current = Queue()
-
+    else:
+        container = PriorityQueue()
+        action_to_current = PriorityQueue()
     while not problem.isGoalState(current_state):
         if current_state not in visited_state:
             visited_state.append(current_state)
             for next_state, action, cost in problem.getSuccessors(current_state):
-                container.push(next_state)
-                temp_action = action_to_goal + [action]
-                action_to_current.push(temp_action)
+                if (algorithm == 'ucs'):
+                    temp_action = action_to_goal + [action]
+                    container.push(next_state, problem.getCostOfActions(temp_action))
+                    action_to_current.push(temp_action, problem.getCostOfActions(temp_action))
+                else: 
+                    temp_action = action_to_goal + [action]
+                    container.push(next_state)
+                    action_to_current.push(temp_action)
 
         current_state = container.pop()
         action_to_goal = action_to_current.pop()
@@ -123,39 +132,24 @@ def depthFirstSearch(problem):
     print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
     "*** YOUR CODE HERE ***"
-    from util import Stack
     
-    stack_state = Stack()
-    return graphSearch(problem, stack_state, 'stack')
+    return graphSearch(problem, 'dfs')
         
     util.raiseNotDefined()
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    from util import Queue
     
-    queue_state = Queue()
-    return graphSearch(problem, queue_state, 'queue')
+    return graphSearch(problem, 'bfs')
 
     util.raiseNotDefined()
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    from util import PriorityQueue
-    priority_queue = PriorityQueue()
-    priority_queue.push((problem.getStartState(), [], 0), 0)
-    visited = []
-    while not priority_queue.isEmpty():
-        state, actions, cost = priority_queue.pop()
-        if problem.isGoalState(state):
-            return actions
-        if state not in visited:
-            visited.append(state)
-            for next_state, action, next_cost in problem.getSuccessors(state):
-                if next_state not in visited:
-                    priority_queue.push((next_state, actions + [action], cost + next_cost), cost + next_cost)
+
+    return graphSearch(problem, 'ucs')
 
     util.raiseNotDefined()
 
