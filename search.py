@@ -74,6 +74,40 @@ def tinyMazeSearch(problem):
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
 
+def graphSearch(problem, container, Stack_or_Queue):
+    """
+    Search algorithm of graph. BFS and DFS are similar, 
+    but BFS uses Queue to manage which state will be visited next
+    while DFS uses Stack.
+    
+    container parameter is used to specify the container the algorithm uses: Queue or Stack.
+    """
+    from util import Stack, Queue
+
+    current_state = problem.getStartState()
+
+    visited_state = []
+    action_to_goal = []
+    
+    if (Stack_or_Queue == 'stack'):
+        action_to_current = Stack()
+    else:
+        action_to_current = Queue()
+
+    while not problem.isGoalState(current_state):
+        if current_state not in visited_state:
+            visited_state.append(current_state)
+            for next_state, action, cost in problem.getSuccessors(current_state):
+                container.push(next_state)
+                temp_action = action_to_goal + [action]
+                action_to_current.push(temp_action)
+
+        current_state = container.pop()
+        action_to_goal = action_to_current.pop()
+    
+    return action_to_goal
+    util.raiseNotDefined()
+
 def depthFirstSearch(problem):
     """
     Search the deepest nodes in the search tree first.
@@ -90,36 +124,20 @@ def depthFirstSearch(problem):
     """
     "*** YOUR CODE HERE ***"
     from util import Stack
-    stack = Stack()
-    stack.push((problem.getStartState(), []))
-    visited = []
-    while not stack.isEmpty():
-        state, actions = stack.pop()
-        if problem.isGoalState(state):
-            return actions
-        if state not in visited:
-            visited.append(state)
-            for next_state, action, cost in problem.getSuccessors(state):
-                if next_state not in visited:
-                    stack.push((next_state, actions + [action]))
+    
+    stack_state = Stack()
+    return graphSearch(problem, stack_state, 'stack')
+        
     util.raiseNotDefined()
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
     from util import Queue
-    queue = Queue()
-    queue.push((problem.getStartState(), []))
-    visited = []
-    while not queue.isEmpty():
-        state, actions = queue.pop()
-        if problem.isGoalState(state):
-            return actions
-        if state not in visited:
-            visited.append(state)
-            for next_state, action, cost in problem.getSuccessors(state):
-                if next_state not in visited:
-                    queue.push((next_state, actions + [action]))
+    
+    queue_state = Queue()
+    return graphSearch(problem, queue_state, 'queue')
+
     util.raiseNotDefined()
 
 def uniformCostSearch(problem):
