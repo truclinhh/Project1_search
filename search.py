@@ -74,49 +74,6 @@ def tinyMazeSearch(problem):
     w = Directions.WEST
     return  [s, s, w, s, w, w, s, w]
 
-def graphSearch(problem, algorithm):
-    """
-    Search algorithm of graph. BFS, DFS and UCS are similar, 
-    but BFS uses Queue to manage which state will be visited next
-    while DFS uses Stack and UCS uses PriorityQueue.
-    
-    container parameter is used to specify the container the algorithm uses: Queue or Stack.
-    """
-    from util import Stack, Queue, PriorityQueue
-
-    current_state = problem.getStartState()
-
-    visited_state = []
-    action_to_goal = []
-    
-    if (algorithm == 'dfs'):
-        container = Stack()
-        action_to_current = Stack()
-    elif (algorithm == 'bfs'):
-        container = Queue()
-        action_to_current = Queue()
-    else:
-        container = PriorityQueue()
-        action_to_current = PriorityQueue()
-    while not problem.isGoalState(current_state):
-        if current_state not in visited_state:
-            visited_state.append(current_state)
-            for next_state, action, cost in problem.getSuccessors(current_state):
-                if (algorithm == 'ucs'):
-                    temp_action = action_to_goal + [action]
-                    container.push(next_state, problem.getCostOfActions(temp_action))
-                    action_to_current.push(temp_action, problem.getCostOfActions(temp_action))
-                else: 
-                    temp_action = action_to_goal + [action]
-                    container.push(next_state)
-                    action_to_current.push(temp_action)
-
-        current_state = container.pop()
-        action_to_goal = action_to_current.pop()
-    
-    return action_to_goal
-    util.raiseNotDefined()
-
 def depthFirstSearch(problem):
     """
     Search the deepest nodes in the search tree first.
@@ -132,16 +89,62 @@ def depthFirstSearch(problem):
     print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
     "*** YOUR CODE HERE ***"
-    
-    return graphSearch(problem, 'dfs')
-        
+    from util import Stack
+
+    # because dfs visits the deepest nodes, I use a stack of states to manage 
+    # which state will be visited next after current state. 
+    state_to_visit = Stack()
+    # I use a list to store all the states that are visited.
+    visited_state = []
+    # I use a stack to store the actions from start state to current state.
+    actions_to_current = Stack()
+    # I use a list to store the action path from start state to goal state.
+    # The actions from start to goal is the list of directions that pacman had visited util reach goal orderly.
+    actions = []
+
+    state = problem.getStartState()
+
+    while not problem.isGoalState(state):
+        if state not in visited_state:
+            visited_state.append(state)
+            for next_state, action, cost in problem.getSuccessors(state):
+                temp_action = actions + [action]
+                actions_to_current.push(temp_action)
+                state_to_visit.push(next_state)
+        state = state_to_visit.pop()
+        actions = actions_to_current.pop()
+
+    return actions
     util.raiseNotDefined()
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
     
-    return graphSearch(problem, 'bfs')
+    from util import Queue
+    # because bfs visits the nearest nodes, I use a queue of states to manage 
+    # which state will be visited next after current state. 
+    state_to_visit = Queue()
+    # I use a list to store all the states that are visited.
+    visited_state = []
+    # I use a list to store the actions from start state to goal state.
+    # The actions from start to goal is the list of directions that pacman had visited util reach goal orderly.
+    actions = []
+    # I use a queue to store the actions from start state to current state.
+    actions_to_current = Queue()
+    state = problem.getStartState()
+
+    while not problem.isGoalState(state):
+        if state not in visited_state:
+            visited_state.append(state)
+            for next_state, action, cost in problem.getSuccessors(state):
+                temp_action = actions + [action]
+                actions_to_current.push(temp_action)
+                state_to_visit.push(next_state)
+        state = state_to_visit.pop()
+        actions = actions_to_current.pop()
+
+    return actions
 
     util.raiseNotDefined()
 
@@ -149,8 +152,30 @@ def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
 
-    return graphSearch(problem, 'ucs')
+    from util import PriorityQueue
+    # because ucs visits the nodes which has least cost first, I use a priority queue of states to manage 
+    # which state will be visited next after current state, the priority attribute is cost of action. 
+    state_to_visit = PriorityQueue()
+    # I use a list to store all the states that are visited.
+    visited_state = []
+    # I use a list to store the actions from start state to goal state.
+    # The actions from start to goal is the list of nodes that pacman had visited till reach goal orderly.
+    actions = []
+    # I use a stack to store the actions from start state to current state.
+    actions_to_current = PriorityQueue()
+    state = problem.getStartState()
+    while not problem.isGoalState(state):
+        if state not in visited_state:
+            visited_state.append(state)
+            for next_state, action, cost in problem.getSuccessors(state):
+                temp_action = actions + [action]
+                cost_of_state = problem.getCostOfActions(temp_action)
+                actions_to_current.push(temp_action, cost_of_state)
+                state_to_visit.push(next_state, cost_of_state)
+        state = state_to_visit.pop()
+        actions = actions_to_current.pop()
 
+    return actions
     util.raiseNotDefined()
 
 def nullHeuristic(state, problem=None):
@@ -164,20 +189,31 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
     from util import PriorityQueue
-    priority_queue = PriorityQueue()
-    priority_queue.push((problem.getStartState(), [], 0), 0)
-    visited = []
-    while not priority_queue.isEmpty():
-        state, actions, cost = priority_queue.pop()
-        if problem.isGoalState(state):
-            return actions
-        if state not in visited:
-            visited.append(state)
-            for next_state, action, next_cost in problem.getSuccessors(state):
-                if next_state not in visited:
-                    priority_queue.push((next_state, actions + [action], cost + next_cost), 
-                        cost + next_cost + heuristic(next_state, problem))
+    # because a* visits the node which has least cost + heuristic first, I use a priority queue 
+    # of states to manage which state will be visited next after current state 
+    # the priority attribute is sum of cost of action and heuristic function. 
+    state_to_visit = PriorityQueue()
+    # I use a list to store all the states that are visited.
+    visited_state = []
+    # I use a list to store the actions from start state to goal state.
+    # The actions from start to goal is the list of nodes that pacman had visited till reach goal orderly.
+    actions = []
+    # I use a stack to store the actions from start state to current state.
+    actions_to_current = PriorityQueue()
+    state = problem.getStartState()
 
+    while not problem.isGoalState(state):
+        if state not in visited_state:
+            visited_state.append(state)
+            for next_state, action, cost in problem.getSuccessors(state):
+                temp_action = actions + [action]
+                cost_of_state = problem.getCostOfActions(temp_action)
+                actions_to_current.push(temp_action, cost_of_state + heuristic(next_state, problem))
+                state_to_visit.push(next_state, cost_of_state + heuristic(next_state, problem))
+        state = state_to_visit.pop()
+        actions = actions_to_current.pop()
+
+    return actions
     util.raiseNotDefined()
 
 
