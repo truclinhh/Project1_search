@@ -288,8 +288,9 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
+        # Initial starting game state to call the mazeDistance function, we can choose a random game state 
+        # but I use start state for simplicity 
         self.startingGameState = startingGameState
-        self.visited_corners = []
 
     def getStartState(self):
         """
@@ -297,7 +298,8 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        return (self.startingPosition, self.visited_corners)
+        # Each state stores the current position of pacman and list of visited state.
+        return (self.startingPosition, [])
         util.raiseNotDefined()
 
     def isGoalState(self, state):
@@ -305,6 +307,7 @@ class CornersProblem(search.SearchProblem):
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
+        # If all corners of the maze appear in visited corner list, pacman reach the goal state.
         for corner in self.corners:
             if corner not in state[1]:
                 return False
@@ -335,8 +338,10 @@ class CornersProblem(search.SearchProblem):
             x, y = state[0]
             dx, dy = Actions.directionToVector(action)
             nextx, nexty = int(x + dx), int(y + dy)
+            # If the next state does not hits the wall, add the next state to the successor list with cost = 1.
             if not self.walls[nextx][nexty]:
                 corner_list = list(state[1])
+                # If hit an unvisited corner, add it to the visited list.
                 if (nextx, nexty) in self.corners and (nextx, nexty) not in corner_list:
                     corner_list.append((nextx, nexty))
                 
@@ -378,14 +383,14 @@ def cornersHeuristic(state, problem):
     "*** YOUR CODE HERE ***"
     x, y = state[0]
     corner_list = list(state[1])
-    if problem.isGoalState(state):
-        return 0
-    max_distance_to_corner = 0
+    # I use the longest distance between current state and the unvisited corner as the heuristic.
+    # The distance is calculated by manhattanDistance function below.
+    heuristic = 0
     for corner in problem.corners:
         if corner not in corner_list:
-            max_distance_to_corner = max(max_distance_to_corner, mazeDistance((x, y), 
-                                            corner, problem.startingGameState))
-    return max_distance_to_corner # Default to trivial solution
+            heuristic = max(heuristic, manhattanDistance(state[0], corner))
+
+    return heuristic # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -479,12 +484,14 @@ def foodHeuristic(state, problem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
+    # Assume that the heuristic function is the longest distance between pacmanPosition and a food.
+    # The distance is calculated by mahatanDistance function below.
     food_list = foodGrid.asList()
-    max_cost_to_goal = 0
+    heuristic = 0
     while food_list:
-        food_position = food_list.pop(0)
-        max_cost_to_goal = max(max_cost_to_goal, mazeDistance(position, food_position, problem.startingGameState))
-    return max_cost_to_goal
+        food_position = food_list.pop()
+        heuristic = max(heuristic, manhattanDistance(food_position, position))
+    return heuristic
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -515,7 +522,11 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        return search.breadthFirstSearch(problem)
+        
+        # I defined the goal state is the closest food.
+        # I use uniformCostSearch function to find the path to the goal with least cost.
+
+        return search.uniformCostSearch(problem)
         util.raiseNotDefined()
 
 class AnyFoodSearchProblem(PositionSearchProblem):
@@ -552,9 +563,10 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        if self.food[x][y]:
-            return True
-        return False
+
+        # return if state position has food or not.
+        return self.food[x][y]
+
         util.raiseNotDefined()
 
 def mazeDistance(point1, point2, gameState):
@@ -574,3 +586,9 @@ def mazeDistance(point1, point2, gameState):
     assert not walls[x2][y2], 'point2 is a wall: ' + str(point2)
     prob = PositionSearchProblem(gameState, start=point1, goal=point2, warn=False, visualize=False)
     return len(search.bfs(prob))
+
+def manhattanDistance(point1, point2):
+    return abs(point1[0] - point2[0]) + abs(point1[1] - point2[1])
+
+def euclideanDistance(point1, point2):
+    return ((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2) ** 0.5
